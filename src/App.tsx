@@ -40,10 +40,14 @@ interface GameState {
   log: string[];
 }
 
+type TerritorySeed = Omit<Territory, 'troops'> & {
+  troops?: Partial<Record<FactionId, number>>;
+};
+
 const factions: FactionId[] = ['baron', 'bene-gesserit', 'emperor', 'fremen'];
 const order: FactionId[] = [...factions];
 
-const territoryConfig: Array<Omit<Territory, 'troops'>> & { troops: Partial<Record<FactionId, number>> } = [
+const territoryConfig: TerritorySeed[] = [
   {
     id: 'arrakeen',
     name: 'Arrakeen',
@@ -129,7 +133,7 @@ function createInitialGameState(): GameState {
   const territories = territoryConfig.reduce<Record<TerritoryId, Territory>>((acc, territory) => {
     acc[territory.id] = {
       ...territory,
-      troops: { ...emptyTroops, ...territory.troops },
+      troops: { ...emptyTroops, ...(territory.troops ?? {}) },
     };
     return acc;
   }, {} as Record<TerritoryId, Territory>);
@@ -174,9 +178,7 @@ function App() {
   const [selectedId, setSelectedId] = useState<TerritoryId | null>('arrakeen');
 
   const selectedTerritory = selectedId ? game.territories[selectedId] : null;
-
   const visibleTerritories = useMemo(() => Object.values(game.territories), [game.territories]);
-
   const currentPlayer = game.players[game.currentTurn];
 
   const collectSpice = () => {
