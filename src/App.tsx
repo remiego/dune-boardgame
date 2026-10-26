@@ -344,6 +344,17 @@ function App() {
     angle: (360 / battleWheelLabels.length) * idx,
   }));
 
+  const boardSegments = [
+    { id: 'arrakeen', x: 54, y: 14, w: 25, h: 18 },
+    { id: 'imperial-basin', x: 47, y: 30, w: 28, h: 18 },
+    { id: 'the-dune-sea', x: 38, y: 41, w: 35, h: 21 },
+    { id: 'red-mountain', x: 62, y: 50, w: 22, h: 16 },
+    { id: 'the-sink', x: 58, y: 66, w: 24, h: 16 },
+    { id: 'carthag', x: 25, y: 62, w: 22, h: 15 },
+    { id: 'sietch-tabr', x: 12, y: 34, w: 24, h: 19 },
+    { id: 'hagga-sietch', x: 23, y: 48, w: 22, h: 16 },
+  ] as const;
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -388,30 +399,38 @@ function App() {
       </aside>
 
       <main className="board-panel">
-        <div className="board-grid">
-          {visibleTerritories.map((territory) => {
-            const isSelected = selectedId === territory.id;
-            const isControlled = territory.control === game.currentTurn;
+        <div className="board-scene">
+          <div className="board-circle">
+            {boardSegments.map((segment) => {
+              const territory = game.territories[segment.id as TerritoryId];
+              const isSelected = selectedId === territory.id;
+              const isControlled = territory.control === game.currentTurn;
 
-            return (
-              <button
-                key={territory.id}
-                className={`territory ${isSelected ? 'selected' : ''} ${isControlled ? 'controlled' : ''}`}
-                onClick={() => setSelectedId(territory.id)}
-                style={{
-                  gridColumn: territory.id === 'arrakeen' ? '1 / span 2' : 'auto',
-                  gridRow: territory.id === 'the-dune-sea' ? '2 / span 2' : 'auto',
-                  background: `linear-gradient(180deg, rgba(160, 112, 48, 0.9), rgba(49, 39, 31, 0.92)), ${isControlled ? `linear-gradient(135deg, ${factionColors[game.currentTurn]}, rgba(15, 23, 42, 0.7))` : 'linear-gradient(135deg, rgba(112, 79, 27, 0.8), rgba(23, 28, 35, 1))'}`,
-                }}
-              >
-                <span className="territory-name">{territory.name}</span>
-                <span className="territory-meta">{territory.terrain}</span>
-                <span className="territory-meta">{territory.spice} spice</span>
-                <span className="territory-meta">control: {territory.control ?? 'neutral'}</span>
-                <span className="territory-meta">troops: {Object.values(territory.troops).reduce((sum, value) => sum + value, 0)}</span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={territory.id}
+                  className={`land-segment ${isSelected ? 'selected' : ''} ${isControlled ? 'controlled' : ''}`}
+                  onClick={() => setSelectedId(territory.id)}
+                  style={{
+                    left: `${segment.x}%`,
+                    top: `${segment.y}%`,
+                    width: `${segment.w}%`,
+                    height: `${segment.h}%`,
+                    background: isControlled
+                      ? `linear-gradient(135deg, ${factionColors[game.currentTurn]}, rgba(72, 52, 30, 0.9))`
+                      : 'linear-gradient(135deg, rgba(175, 128, 73, 0.9), rgba(120, 84, 51, 0.86))',
+                  }}
+                >
+                  <span>{territory.name}</span>
+                  <small>{territory.spice} spice</small>
+                </button>
+              );
+            })}
+
+            <div className="board-label dune-word">DUNE</div>
+            <div className="board-label spice-bank">SPICE BANK</div>
+            <div className="board-label move-track">TERRITORY TRACK</div>
+          </div>
         </div>
 
         <div className="side-stack">
