@@ -76,11 +76,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'city',
     spice: 4,
     neighbors: ['carthag', 'imperial-basin', 'the-dune-sea'],
-    x: 550,
-    y: 120,
-    w: 160,
+    x: 530,
+    y: 132,
+    w: 150,
     h: 120,
-    points: '560,160 620,120 710,170 670,245 590,245 540,200',
+    points: '560,160 640,125 732,172 696,248 584,252 540,210',
   },
   carthag: {
     id: 'carthag',
@@ -88,11 +88,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'rock',
     spice: 2,
     neighbors: ['arrakeen', 'red-mountain', 'the-sink'],
-    x: 250,
-    y: 420,
+    x: 210,
+    y: 430,
     w: 170,
-    h: 140,
-    points: '250,450 335,420 420,470 380,560 260,585 220,510',
+    h: 145,
+    points: '220,465 322,430 415,470 385,565 268,595 205,528',
   },
   'sietch-tabr': {
     id: 'sietch-tabr',
@@ -100,11 +100,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'oasis',
     spice: 1,
     neighbors: ['hagga-sietch', 'the-dune-sea'],
-    x: 120,
-    y: 220,
-    w: 180,
+    x: 110,
+    y: 240,
+    w: 170,
     h: 150,
-    points: '120,255 215,220 300,260 275,360 170,390 110,315',
+    points: '118,272 210,236 298,266 278,364 170,392 104,324',
   },
   'hagga-sietch': {
     id: 'hagga-sietch',
@@ -112,11 +112,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'oasis',
     spice: 2,
     neighbors: ['sietch-tabr', 'the-dune-sea', 'red-mountain'],
-    x: 245,
-    y: 345,
-    w: 170,
+    x: 240,
+    y: 350,
+    w: 180,
     h: 120,
-    points: '250,360 335,345 410,385 385,470 295,500 240,445',
+    points: '248,364 336,346 418,388 392,476 298,505 240,442',
   },
   'imperial-basin': {
     id: 'imperial-basin',
@@ -124,11 +124,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'sand',
     spice: 5,
     neighbors: ['arrakeen', 'the-dune-sea', 'the-sink'],
-    x: 370,
-    y: 250,
-    w: 200,
-    h: 170,
-    points: '390,260 520,245 610,290 585,400 470,450 390,390',
+    x: 385,
+    y: 260,
+    w: 220,
+    h: 165,
+    points: '392,282 522,254 620,300 592,408 470,452 392,394',
   },
   'the-dune-sea': {
     id: 'the-dune-sea',
@@ -136,11 +136,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'sand',
     spice: 6,
     neighbors: ['arrakeen', 'sietch-tabr', 'hagga-sietch', 'imperial-basin', 'red-mountain'],
-    x: 345,
-    y: 350,
-    w: 240,
-    h: 190,
-    points: '350,390 480,350 620,395 635,540 520,610 385,590 330,470',
+    x: 335,
+    y: 352,
+    w: 255,
+    h: 205,
+    points: '350,394 484,356 622,402 638,548 520,620 384,590 332,472',
   },
   'red-mountain': {
     id: 'red-mountain',
@@ -148,11 +148,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'rock',
     spice: 3,
     neighbors: ['carthag', 'hagga-sietch', 'the-dune-sea', 'the-sink'],
-    x: 620,
+    x: 612,
     y: 430,
-    w: 180,
+    w: 200,
     h: 160,
-    points: '650,470 760,430 820,500 785,610 675,650 610,580',
+    points: '650,468 764,432 820,500 788,612 676,652 610,582',
   },
   'the-sink': {
     id: 'the-sink',
@@ -160,11 +160,11 @@ const territoryBlueprint: Record<TerritoryId, Omit<Territory, 'control' | 'troop
     terrain: 'sand',
     spice: 2,
     neighbors: ['carthag', 'imperial-basin', 'red-mountain'],
-    x: 480,
-    y: 600,
-    w: 160,
+    x: 470,
+    y: 610,
+    w: 170,
     h: 120,
-    points: '490,640 560,610 640,655 620,725 520,745 470,690',
+    points: '488,640 562,610 644,658 620,728 520,746 470,692',
   },
 };
 
@@ -187,7 +187,16 @@ function createInitialGameState(): GameState {
   const territories = territorySeedList.reduce<Record<TerritoryId, Territory>>((acc, territory) => {
     const initial = {
       ...territory,
-      control: territory.id === 'arrakeen' ? 'emperor' : territory.id === 'red-mountain' ? 'bene-gesserit' : territory.id === 'sietch-tabr' ? 'fremen' : territory.id === 'carthag' ? 'baron' : null,
+      control:
+        territory.id === 'arrakeen'
+          ? 'emperor'
+          : territory.id === 'red-mountain'
+            ? 'bene-gesserit'
+            : territory.id === 'sietch-tabr'
+              ? 'fremen'
+              : territory.id === 'carthag'
+                ? 'baron'
+                : null,
       troops: {
         ...emptyTroops,
         ...(territory.troops ?? {}),
@@ -362,6 +371,10 @@ function App() {
     angle: (360 / battleWheelLabels.length) * idx,
   }));
 
+  const battleSummary = battleState.attackRoll !== null && battleState.defenseRoll !== null
+    ? `${battleState.attackRoll} / ${battleState.defenseRoll}`
+    : 'Ready';
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -429,7 +442,7 @@ function App() {
                   <polygon
                     points={territory.points}
                     fill={fill}
-                    opacity={isSelected ? 0.9 : 0.7}
+                    opacity={isSelected ? 0.9 : 0.72}
                     stroke={isSelected ? '#fff7d6' : '#3a2615'}
                     strokeWidth={isSelected ? 4 : 2}
                     className={isControlled ? 'selected-territory' : ''}
@@ -484,6 +497,7 @@ function App() {
               </div>
               <div className="battle-pointer" />
             </div>
+            <div className="battle-result">{battleSummary}</div>
             <div className="battle-controls">
               <button className="secondary" onClick={resolveBattle}>Resolve combat</button>
             </div>
