@@ -124,7 +124,8 @@ button.secondary {
 
 .player-panel,
 .details-panel,
-.log-panel {
+.log-panel,
+.battle-panel {
   background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(245, 231, 199, 0.12);
   border-radius: 12px;
@@ -142,51 +143,125 @@ button.secondary {
 .board-panel {
   flex: 1;
   display: grid;
-  grid-template-columns: 1.6fr 0.8fr;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.75fr);
   gap: 20px;
 }
 
-.board-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(160px, 1fr));
-  gap: 16px;
+.board-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 720px;
   background: rgba(20, 29, 35, 0.8);
   border: 1px solid rgba(245, 231, 199, 0.1);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 18px;
 }
 
-.territory {
-  min-height: 150px;
+.board-circle {
+  position: relative;
+  width: min(100%, 760px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(239, 214, 163, 0.9), rgba(165, 115, 62, 0.72) 28%, rgba(80, 55, 28, 0.9) 58%, rgba(25, 21, 18, 1) 100%),
+    url('/dune_board.png') center/cover no-repeat;
+  border: 12px solid #2d2116;
+  box-shadow:
+    inset 0 0 0 4px rgba(212, 178, 110, 0.55),
+    inset 0 0 30px rgba(0, 0, 0, 0.5),
+    0 30px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.board-circle::before {
+  content: '';
+  position: absolute;
+  inset: 38px;
+  border: 3px solid rgba(90, 69, 35, 0.8);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.board-circle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.1) 58%, rgba(0, 0, 0, 0.45) 100%);
+  pointer-events: none;
+}
+
+.land-segment {
+  position: absolute;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-  text-align: left;
-  color: #f8fafc;
-  background: linear-gradient(180deg, rgba(65, 58, 41, 0.9), rgba(22, 27, 35, 0.9));
-  border: 1px solid rgba(245, 231, 199, 0.12);
-  border-radius: 14px;
-  padding: 14px;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-radius: 22px 22px 28px 28px;
+  border: 2px solid rgba(58, 39, 25, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(245, 231, 199, 0.18);
+  color: #fff7e8;
+  padding: 8px 10px;
+  z-index: 2;
+  backdrop-filter: blur(2px);
 }
 
-.territory.selected {
-  border-color: rgba(96, 165, 250, 0.9);
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.35);
+.land-segment span,
+.land-segment small {
+  display: block;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
-.territory.controlled {
-  background: linear-gradient(180deg, rgba(26, 92, 62, 0.9), rgba(22, 27, 35, 0.9));
-}
-
-.territory-name {
-  font-size: 1.1rem;
+.land-segment span {
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
-.territory-meta {
-  opacity: 0.8;
-  font-size: 0.9rem;
+.land-segment small {
+  font-size: 0.6rem;
+  opacity: 0.9;
+}
+
+.land-segment.selected {
+  box-shadow: 0 0 0 3px rgba(146, 204, 255, 0.7), inset 0 0 0 1px rgba(245, 231, 199, 0.3);
+}
+
+.land-segment.controlled {
+  filter: saturate(1.2) brightness(1.04);
+}
+
+.board-label {
+  position: absolute;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(33, 26, 19, 0.8);
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.dune-word {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  font-size: 4rem;
+  letter-spacing: 0.12em;
+}
+
+.spice-bank {
+  left: 12%;
+  bottom: 8%;
+}
+
+.move-track {
+  right: 10%;
+  bottom: 12%;
+}
+
+.side-stack {
+  display: grid;
+  gap: 16px;
 }
 
 .details-panel {
@@ -209,8 +284,66 @@ button.secondary {
   font-size: 0.78rem;
 }
 
+.battle-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.battle-wheel-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 180px;
+}
+
+.battle-wheel {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #625b44 0%, #1d1b1a 30%, #070707 100%);
+  border: 4px solid #d4b06d;
+  box-shadow: inset 0 0 0 6px rgba(0, 0, 0, 0.45), 0 0 20px rgba(0, 0, 0, 0.25);
+  transition: transform 1.8s cubic-bezier(0.18, 0.89, 0.32, 1.2);
+  overflow: hidden;
+}
+
+.battle-segment {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%);
+  display: grid;
+  place-items: center;
+  color: #201c1b;
+  font-weight: 800;
+  font-size: 0.9rem;
+  transform-origin: center;
+}
+
+.battle-segment:nth-child(odd) {
+  color: #1a1a1a;
+}
+
+.battle-pointer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 22px solid #f5d76c;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.4));
+}
+
+.battle-controls {
+  display: flex;
+  justify-content: center;
+}
+
 .log-panel {
-  grid-column: 2;
+  grid-column: 1;
 }
 
 @media (max-width: 980px) {
@@ -224,6 +357,10 @@ button.secondary {
   }
 
   .board-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .side-stack {
     grid-template-columns: 1fr;
   }
 
