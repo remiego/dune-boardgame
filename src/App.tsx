@@ -40,12 +40,29 @@ interface GameState {
   log: string[];
 }
 
+interface BattleState {
+  isOpen: boolean;
+  attacker: FactionId | null;
+  targetId: TerritoryId | null;
+  attackRoll: number | null;
+  defenseRoll: number | null;
+  outcome: 'win' | 'loss' | 'draw' | null;
+}
+
 type TerritorySeed = Omit<Territory, 'troops'> & {
   troops?: Partial<Record<FactionId, number>>;
 };
 
 const factions: FactionId[] = ['baron', 'bene-gesserit', 'emperor', 'fremen'];
 const order: FactionId[] = [...factions];
+const battleWheelLabels = ['1', '2', '3', '4', '5', '6'];
+
+const factionColors: Record<FactionId, string> = {
+  baron: '#8ecae6',
+  'bene-gesserit': '#b8f2e6',
+  emperor: '#ffb703',
+  fremen: '#f77f00',
+};
 
 const territoryConfig: TerritorySeed[] = [
   {
@@ -129,6 +146,8 @@ const emptyTroops: Record<FactionId, number> = {
   fremen: 0,
 };
 
+const randomDie = (mod = 6) => Math.floor(Math.random() * mod) + 1;
+
 function createInitialGameState(): GameState {
   const territories = territoryConfig.reduce<Record<TerritoryId, Territory>>((acc, territory) => {
     acc[territory.id] = {
@@ -176,6 +195,15 @@ function updateWinner(state: GameState): GameState {
 function App() {
   const [game, setGame] = useState<GameState>(() => createInitialGameState());
   const [selectedId, setSelectedId] = useState<TerritoryId | null>('arrakeen');
+  const [battleState, setBattleState] = useState<BattleState>({
+    isOpen: false,
+    attacker: null,
+    targetId: null,
+    attackRoll: null,
+    defenseRoll: null,
+    outcome: null,
+  });
+  const [battleRotation, setBattleRotation] = useState(0);
 
   const selectedTerritory = selectedId ? game.territories[selectedId] : null;
   const visibleTerritories = useMemo(() => Object.values(game.territories), [game.territories]);
@@ -233,8 +261,9 @@ function App() {
     setGame(nextState);
   };
 
-  const attackSelected = () => {
+  const openBattleWheel = () => {
     if (!selectedTerritory || game.winner) return;
+
     const currentFaction = game.currentTurn;
     const target = selectedTerritory;
 
@@ -243,32 +272,77 @@ function App() {
       return;
     }
 
-    const neighbors = Object.values(game.territories).filter(
-      (territory) => territory.control !== currentFaction && territory.id !== target.id && target.neighbors.includes(territory.id),
+    const adjacentToOwn = Object.values(game.territories).some(
+      (territory) => territory.control === currentFaction && target.neighbors.includes(territory.id),
     );
 
-    const enemyNearby = neighbors.some((territory) => territory.id === target.id);
-    if (!enemyNearby && target.control !== null) {
-      setGame({ ...game, log: [...game.log, `${target.name} is not adjacent to a controlled territory.`] });
+    if (!adjacentToOwn && target.control !== null) {
+      setGame({ ...game, log: [...game.log, `${target.name} is not adjacent to one of your territories.`] });
       return;
     }
 
-    const next: GameState = structuredClone(game);
-    const attackPower = next.players[currentFaction].influence + next.territories[selectedId!].troops[currentFaction];
-    const defensePower = target.troops[target.control ?? currentFaction] + 2;
+    setBattleState({
+      isOpen: true,
+      attacker: currentFaction,
+      targetId: target.id,
+      attackRoll: null,
+      defenseRoll: null,
+      outcome: null,
+    });
+  };
 
-    if (attackPower > defensePower) {
-      next.territories[selectedId!].control = currentFaction;
-      next.territories[selectedId!].troops[currentFaction] += 1;
-      next.territories[selectedId!].troops[target.control ?? currentFaction] = 0;
-      next.players[currentFaction].spice += target.spice;
-      next.log = [...next.log, `${currentFaction} captures ${target.name} and gains ${target.spice} spice.`];
+  const resolveBattle = () => {
+    if (!battleState.attacker || !battleState.targetId) return;
+
+    const next: GameState = structuredClone(game);
+    const attacker = battleState.attacker;
+    const target = next.territories[battleState.targetId];
+    const defender = target.control ?? attacker;
+
+    const attackRoll = randomDie() + next.players[attacker].influence + (target.terrain === 'city' ? 1 : 0);
+    const defenseRoll = randomDie() + (target.troops[defender] || 0) + (target.terrain === 'oasis' ? 1 : 0);
+    const outcome = attackRoll > defenseRoll ? 'win' : attackRoll < defenseRoll ? 'loss' : 'draw';
+    const wheelTurn = 1080 + Math.floor(Math.random() * 1440);
+
+    setBattleRotation(wheelTurn);
+    setBattleState({
+      ...battleState,
+      attackRoll,
+      defenseRoll,
+      outcome,
+    });
+
+    if (outcome === 'win') {
+      target.control = attacker;
+      target.troops[defender] = 0;
+      target.troops[attacker] += 1;
+      next.players[attacker].spice += target.spice;
+      next.log = [...next.log, `${attacker} wins the battle for ${target.name} with ${attackRoll} to ${defenseRoll}.`];
+      setGame(updateWinner(next));
+    } else if (outcome === 'loss') {
+      target.troops[attacker] = Math.max(0, (target.troops[attacker] || 0) - 1);
+      next.log = [...next.log, `${attacker} loses the battle for ${target.name} (${attackRoll} vs ${defenseRoll}).`];
+      setGame(updateWinner(next));
     } else {
-      next.log = [...next.log, `${currentFaction} attacks ${target.name} but fails.`];
+      next.log = [...next.log, `${attacker} and ${defender} are locked in a stalemate at ${target.name}.`];
+      setGame(updateWinner(next));
     }
 
-    setGame(updateWinner(next));
+    setBattleState({
+      isOpen: false,
+      attacker: null,
+      targetId: null,
+      attackRoll: null,
+      defenseRoll: null,
+      outcome: null,
+    });
   };
+
+  const wheelSegments = battleWheelLabels.map((label, idx) => ({
+    label,
+    color: idx % 2 === 0 ? '#e9c46a' : '#7a4d2a',
+    angle: (360 / battleWheelLabels.length) * idx,
+  }));
 
   return (
     <div className="app-shell">
@@ -288,7 +362,7 @@ function App() {
         <div className="faction-list">
           {factions.map((faction) => (
             <div key={faction} className={`faction-row ${game.currentTurn === faction ? 'active' : ''}`}>
-              <span>{faction}</span>
+              <span style={{ color: factionColors[faction] }}>{faction}</span>
               <b>{game.players[faction].spice} spice</b>
             </div>
           ))}
@@ -297,7 +371,7 @@ function App() {
         <div className="tools">
           <button onClick={collectSpice}>Collect spice</button>
           <button onClick={reinforceSelected}>Reinforce</button>
-          <button onClick={attackSelected}>Attack</button>
+          <button onClick={openBattleWheel}>Battle wheel</button>
           <button className="secondary" onClick={advanceTurn}>End turn</button>
         </div>
 
@@ -327,6 +401,7 @@ function App() {
                 style={{
                   gridColumn: territory.id === 'arrakeen' ? '1 / span 2' : 'auto',
                   gridRow: territory.id === 'the-dune-sea' ? '2 / span 2' : 'auto',
+                  background: `linear-gradient(180deg, rgba(160, 112, 48, 0.9), rgba(49, 39, 31, 0.92)), ${isControlled ? `linear-gradient(135deg, ${factionColors[game.currentTurn]}, rgba(15, 23, 42, 0.7))` : 'linear-gradient(135deg, rgba(112, 79, 27, 0.8), rgba(23, 28, 35, 1))'}`,
                 }}
               >
                 <span className="territory-name">{territory.name}</span>
@@ -339,31 +414,57 @@ function App() {
           })}
         </div>
 
-        <div className="details-panel">
-          <h3>{selectedTerritory?.name ?? 'Select a territory'}</h3>
-          {selectedTerritory && (
-            <>
-              <p>Terrain: {selectedTerritory.terrain}</p>
-              <p>Spice yield: {selectedTerritory.spice}</p>
-              <p>Controlled by: {selectedTerritory.control ?? 'neutral'}</p>
-              <div className="troop-breakdown">
-                {factions.map((faction) => (
-                  <span key={faction}>
-                    {faction}: {selectedTerritory.troops[faction]}
+        <div className="side-stack">
+          <div className="details-panel">
+            <h3>{selectedTerritory?.name ?? 'Select a territory'}</h3>
+            {selectedTerritory && (
+              <>
+                <p>Terrain: {selectedTerritory.terrain}</p>
+                <p>Spice yield: {selectedTerritory.spice}</p>
+                <p>Controlled by: {selectedTerritory.control ?? 'neutral'}</p>
+                <div className="troop-breakdown">
+                  {factions.map((faction) => (
+                    <span key={faction}>
+                      {faction}: {selectedTerritory.troops[faction]}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="battle-panel">
+            <h3>Battle wheel</h3>
+            <div className="battle-wheel-wrap">
+              <div className="battle-wheel" style={{ transform: `rotate(${battleRotation}deg)` }}>
+                {wheelSegments.map((segment) => (
+                  <span
+                    key={segment.label}
+                    className="battle-segment"
+                    style={{
+                      transform: `rotate(${segment.angle}deg)`,
+                      background: segment.color,
+                    }}
+                  >
+                    {segment.label}
                   </span>
                 ))}
               </div>
-            </>
-          )}
-        </div>
+              <div className="battle-pointer" />
+            </div>
+            <div className="battle-controls">
+              <button className="secondary" onClick={resolveBattle}>Resolve combat</button>
+            </div>
+          </div>
 
-        <div className="log-panel">
-          <h3>War log</h3>
-          <ul>
-            {game.log.slice(-8).map((entry, index) => (
-              <li key={`${entry}-${index}`}>{entry}</li>
-            ))}
-          </ul>
+          <div className="log-panel">
+            <h3>War log</h3>
+            <ul>
+              {game.log.slice(-8).map((entry, index) => (
+                <li key={`${entry}-${index}`}>{entry}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </main>
     </div>
